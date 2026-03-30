@@ -17,12 +17,14 @@ st.sidebar.header("Filtros")
 # Global text search
 search = st.sidebar.text_input("Busca geral (qualquer coluna)")
 
-# Per-column filters
+# Per-column filters (only Inc. columns)
+inc_cols = [c for c in df.columns if c.strip().startswith("Inc.")]
+
 with st.sidebar.expander("Filtrar por coluna", expanded=False):
     filters = {}
-    for col in df.columns:
+    for col in inc_cols:
         unique_vals = ["(Todos)"] + sorted(df[col].dropna().unique().tolist())
-        selected = st.selectbox(col, unique_vals, key=f"filter_{col}")
+        selected = st.selectbox(col.strip(), unique_vals, key=f"filter_{col}")
         if selected != "(Todos)":
             filters[col] = selected
 
