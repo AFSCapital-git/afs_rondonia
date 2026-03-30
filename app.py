@@ -21,6 +21,12 @@ search = st.sidebar.text_input("Busca geral (qualquer coluna)")
 inc_cols = [c for c in df.columns if c.strip().startswith("Inc.")]
 
 with st.sidebar.expander("Filtrar por coluna", expanded=False):
+    bool_op = st.radio(
+        "Operação entre filtros",
+        options=["E", "OU"],
+        horizontal=True,
+        help="E: mostra linhas que atendem a TODOS os filtros. OU: mostra linhas que atendem a QUALQUER filtro.",
+    )
     filters = {}
     for col in inc_cols:
         unique_vals = ["(Todos)"] + sorted(df[col].dropna().unique().tolist())
@@ -38,8 +44,17 @@ if search:
     )
     filtered_df = filtered_df[mask]
 
-for col, val in filters.items():
-    filtered_df = filtered_df[filtered_df[col] == val]
+if filters:
+    col_masks = [filtered_df[col] == val for col, val in filters.items()]
+    if bool_op == "E":
+        combined = col_masks[0]
+        for m in col_masks[1:]:
+            combined = combined & m
+    else:  # OU
+        combined = col_masks[0]
+        for m in col_masks[1:]:
+            combined = combined | m
+    filtered_df = filtered_df[combined]
 
 # --- Results ---
 st.caption(f"{len(filtered_df):,} de {len(df):,} registros")
@@ -54,3 +69,18 @@ st.download_button(
     file_name="correspondentes_filtrado.csv",
     mime="text/csv",
 )
+
+# --- Legend ---
+st.divider()
+with st.expander("Legenda das Incidências", expanded=False):
+    st.markdown("""
+| Incidência | Descrição |
+|---|---|
+| **Inc. I** | Recepção e encaminhamento de propostas de abertura de contas de depósitos à vista, a prazo e de poupança mantidas pela instituição contratante |
+| **Inc. II** | Realização de recebimentos, pagamentos e transferências eletrônicas visando à movimentação de contas de depósitos de titularidade de clientes mantidas pela instituição contratante |
+| **Inc. III** | Recebimentos e pagamentos de qualquer natureza, e outras atividades decorrentes da execução de contratos e convênios de prestação de serviços mantidos pela instituição contratante com terceiros |
+| **Inc. IV** | Execução ativa e passiva de ordens de pagamento cursadas por intermédio da instituição contratante por solicitação de clientes e usuários |
+| **Inc. V** | Recepção e encaminhamento de propostas de operações de crédito e de arrendamento mercantil concedidas pela instituição contratante, bem como outros serviços prestados para o acompanhamento da operação |
+| **Inc. VI** | Recebimentos e pagamentos relacionados a letras de câmbio de aceite da instituição contratante |
+| **Inc. VIII** | Recepção e encaminhamento de propostas de fornecimento de cartões de crédito de responsabilidade da instituição contratante |
+""")
